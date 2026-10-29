@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Científica</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #121418;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .calculadora {
+            background: #1f232b;
+            width: 360px;
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border: 1px solid #2d333f;
+        }
+
+        .titulo {
+            color: #9ba1b0;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .pantalla {
+            background: #0f1115;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: right;
+            border: 1px solid #262a34;
+        }
+
+        .historial {
+            color: #727a8c;
+            font-size: 14px;
+            min-height: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .valor-actual {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .teclado {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            padding: 14px 0;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #2a303c;
+            color: #f1f3f5;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        button:hover {
+            filter: brightness(1.15);
+        }
+
+        /* Colores por categoría */
+        .btn-cientifico {
+            background: #252b36;
+            color: #4da3ff;
+            font-size: 14px;
+        }
+
+        .btn-operador {
+            background: #343c4c;
+            color: #ff9f43;
+            font-size: 18px;
+        }
+
+        .btn-accion {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-igual {
+            background: #00d2d3;
+            color: #121418;
+            font-weight: bold;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculadora">
+        <div class="titulo">Calculadora Científica</div>
+        
+        <div class="pantalla">
+            <div id="historial" class="historial"></div>
+            <div id="display" class="valor-actual">0</div>
+        </div>
+
+        <div class="teclado">
+            <!-- Fila Científica 1 -->
+            <button class="btn-cientifico" onclick="calcularDirecto('seno')">sin</button>
+            <button class="btn-cientifico" onclick="calcularDirecto('coseno')">cos</button>
+            <button class="btn-cientifico" onclick="calcularDirecto('tangente')">tan</button>
+            <button class="btn-accion" onclick="limpiar()">C</button>
+
+            <!-- Fila Científica 2 -->
+            <button class="btn-cientifico" onclick="calcularDirecto('log10')">log</button>
+            <button class="btn-cientifico" onclick="calcularDirecto('ln')">ln</button>
+            <button class="btn-cientifico" onclick="calcularDirecto('raiz')">√</button>
+            <button class="btn-cientifico" onclick="calcularDirecto('factorial')">x!</button>
+
+            <!-- Fila Números y Operaciones Básicas -->
+            <button onclick="agregarNumero('7')">7</button>
+            <button onclick="agregarNumero('8')">8</button>
+            <button onclick="agregarNumero('9')">9</button>
+            <button class="btn-operador" onclick="prepararOperacion('dividir', '/')">÷</button>
+
+            <button onclick="agregarNumero('4')">4</button>
+            <button onclick="agregarNumero('5')">5</button>
+            <button onclick="agregarNumero('6')">6</button>
+            <button class="btn-operador" onclick="prepararOperacion('multiplicar', '×')">×</button>
+
+            <button onclick="agregarNumero('1')">1</button>
+            <button onclick="agregarNumero('2')">2</button>
+            <button onclick="agregarNumero('3')">3</button>
+            <button class="btn-operador" onclick="prepararOperacion('restar', '-')">-</button>
+
+            <!-- Última Fila -->
+            <button onclick="agregarNumero('0')">0</button>
+            <button onclick="agregarPunto()">.</button>
+            <button class="btn-operador" onclick="prepararOperacion('potencia', '^')">xʸ</button>
+            <button class="btn-operador" onclick="prepararOperacion('sumar', '+')">+</button>
+
+            <!-- Botón Igual abarcando el ancho completo inferior -->
+            <button class="btn-igual" style="grid-column: span 4;" onclick="ejecutarIgual()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let valorActual = '0';
+        let primerOperando = null;
+        let operacionPendiente = null;
+        let limpiarEnProximoNumero = false;
+
+        const display = document.getElementById('display');
+        const historial = document.getElementById('historial');
+
+        function actualizarPantalla() {
+            display.innerText = valorActual;
+        }
+
+        function agregarNumero(num) {
+            if (limpiarEnProximoNumero) {
+                valorActual = num;
+                limpiarEnProximoNumero = false;
+            } else {
+                valorActual = (valorActual === '0') ? num : valorActual + num;
+            }
+            actualizarPantalla();
+        }
+
+        function agregarPunto() {
+            if (limpiarEnProximoNumero) {
+                valorActual = '0.';
+                limpiarEnProximoNumero = false;
+            } else if (!valorActual.includes('.')) {
+                valorActual += '.';
+            }
+            actualizarPantalla();
+        }
+
+        function limpiar() {
+            valorActual = '0';
+            primerOperando = null;
+            operacionPendiente = null;
+            limpiarEnProximoNumero = false;
+            historial.innerText = '';
+            actualizarPantalla();
+        }
+
+        // Operaciones de 2 números (+, -, *, /, ^)
+        function prepararOperacion(op, simbolo) {
+            primerOperando = parseFloat(valorActual);
+            operacionPendiente = op;
+            historial.innerText = `${valorActual} ${simbolo}`;
+            limpiarEnProximoNumero = true;
+        }
+
+        // Operaciones inmediatas de 1 número (sin, cos, tan, log, etc.)
+        async function calcularDirecto(op) {
+            const num = parseFloat(valorActual);
+            historial.innerText = `${op}(${num})`;
+
+            try {
+                const res = await fetch('/calcular', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ operacion: op, num1: num })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    valorActual = String(data.resultado);
+                    actualizarPantalla();
+                    limpiarEnProximoNumero = true;
+                } else {
+                    display.innerText = data.error;
+                    limpiarEnProximoNumero = true;
+                }
+            } catch (err) {
+                display.innerText = 'Error';
+            }
+        }
+
+        // Resolver operaciones con el botón "="
+        async function ejecutarIgual() {
+            if (!operacionPendiente || primerOperando === null) return;
+
+            const segundoOperando = parseFloat(valorActual);
+            historial.innerText += ` ${segundoOperando} =`;
+
+            try {
+                const res = await fetch('/calcular', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        operacion: operacionPendiente,
+                        num1: primerOperando,
+                        num2: segundoOperando
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    valorActual = String(data.resultado);
+                    actualizarPantalla();
+                    primerOperando = null;
+                    operacionPendiente = null;
+                    limpiarEnProximoNumero = true;
+                } else {
+                    display.innerText = data.error;
+                    primerOperando = null;
+                    operacionPendiente = null;
+                    limpiarEnProximoNumero = true;
+                }
+            } catch (err) {
+                display.innerText = 'Error';
+            }
+        }
+    </script>
+</body>
+</html>
